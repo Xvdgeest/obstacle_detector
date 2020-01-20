@@ -41,14 +41,21 @@
 namespace obstacle_detector
 {
 
-class TrackedObstacle {
+class TrackedObstacle
+{
 public:
-  TrackedObstacle(const CircleObstacle& obstacle) : obstacle_(obstacle), kf_x_(0, 1, 2), kf_y_(0, 1, 2), kf_r_(0, 1, 2) {
+  TrackedObstacle(const CircleObstacle &obstacle) : obstacle_(obstacle), kf_x_(0, 1, 2), kf_y_(0, 1, 2), kf_r_(0, 1, 2), CanMove_(0), Movecount_(0)
+  {
     fade_counter_ = s_fade_counter_size_;
     initKF();
   }
-
-  void predictState() {
+  std::string p_frame_id_;
+  int obstacle_number_;
+  int CanMove_;
+  int Movecount_;
+  double distance_;
+  void predictState()
+  {
     kf_x_.predictState();
     kf_y_.predictState();
     kf_r_.predictState();
@@ -64,7 +71,8 @@ public:
     fade_counter_--;
   }
 
-  void correctState(const CircleObstacle& new_obstacle) {
+  void correctState(const CircleObstacle &new_obstacle)
+  {
     kf_x_.y(0) = new_obstacle.center.x;
     kf_y_.y(0) = new_obstacle.center.y;
     kf_r_.y(0) = new_obstacle.radius;
@@ -84,7 +92,8 @@ public:
     fade_counter_ = s_fade_counter_size_;
   }
 
-  void updateState() {
+  void updateState()
+  {
     kf_x_.predictState();
     kf_y_.predictState();
     kf_r_.predictState();
@@ -95,37 +104,62 @@ public:
 
     obstacle_.center.x = kf_x_.q_est(0);
     obstacle_.center.y = kf_y_.q_est(0);
-
     obstacle_.velocity.x = kf_x_.q_est(1);
     obstacle_.velocity.y = kf_y_.q_est(1);
 
-    obstacle_.radius = kf_r_.q_est(0);
 
-    fade_counter_--;
+    if (sqrt(obstacle_.velocity.x * obstacle_.velocity.x + obstacle_.velocity.y * obstacle_.velocity.y) > 0.15)
+    {
+      Movecount_++;
+    }
+    else{
+      Movecount_ = 0;
+    }
+
+    if (Movecount_>5)
+    {
+      CanMove_ = 3; //Moving
+    }
+    else if (CanMove_ == 3 || CanMove_ == 2)
+    {
+      CanMove_ = 2; //Moveable
+    }
+    else
+    {
+      CanMove_ = 1; //Static
+    }
+
+      obstacle_.radius = kf_r_.q_est(0);
+
+      fade_counter_--;
   }
 
-  static void setSamplingTime(double tp) {
+  static void setSamplingTime(double tp)
+  {
     s_sampling_time_ = tp;
   }
 
-  static void setCounterSize(int size) {
+  static void setCounterSize(int size)
+  {
     s_fade_counter_size_ = size;
   }
 
-  static void setCovariances(double process_var, double process_rate_var, double measurement_var) {
+  static void setCovariances(double process_var, double process_rate_var, double measurement_var)
+  {
     s_process_variance_ = process_var;
     s_process_rate_variance_ = process_rate_var;
     s_measurement_variance_ = measurement_var;
   }
 
   bool hasFaded() const { return ((fade_counter_ <= 0) ? true : false); }
-  const CircleObstacle& getObstacle() const { return obstacle_; }
-  const KalmanFilter& getKFx() const { return kf_x_; }
-  const KalmanFilter& getKFy() const { return kf_y_; }
-  const KalmanFilter& getKFr() const { return kf_r_; }
+  const CircleObstacle &getObstacle() const { return obstacle_; }
+  const KalmanFilter &getKFx() const { return kf_x_; }
+  const KalmanFilter &getKFy() const { return kf_y_; }
+  const KalmanFilter &getKFr() const { return kf_r_; }
 
 private:
-  void initKF() {
+  void initKF()
+  {
     kf_x_.A(0, 1) = s_sampling_time_;
     kf_y_.A(0, 1) = s_sampling_time_;
     kf_r_.A(0, 1) = s_sampling_time_;
@@ -177,4 +211,4 @@ private:
   static double s_measurement_variance_;
 };
 
-}
+} // namespace obstacle_detector

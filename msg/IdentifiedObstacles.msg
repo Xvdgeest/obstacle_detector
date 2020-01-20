@@ -1,0 +1,3 @@
+Header header
+
+obstacle_detector/IdentifiedObstacle[] identified_obstacles

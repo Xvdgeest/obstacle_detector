@@ -41,6 +41,8 @@
 #include <armadillo>
 #include <std_srvs/Empty.h>
 #include <obstacle_detector/Obstacles.h>
+#include <obstacle_detector/IdentifiedObstacles.h>
+#include <tf/transform_listener.h>
 
 #include "obstacle_detector/utilities/tracked_obstacle.h"
 #include "obstacle_detector/utilities/math_utilities.h"
@@ -57,8 +59,12 @@ private:
   bool updateParams(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
   void timerCallback(const ros::TimerEvent&);
   void obstaclesCallback(const obstacle_detector::Obstacles::ConstPtr new_obstacles);
-
-  void initialize() { std_srvs::Empty empt; updateParams(empt.request, empt.response); }
+  void identified_obstaclesCallback(const obstacle_detector::IdentifiedObstacles::ConstPtr identified_obstacles);
+  void initialize()
+  {
+    std_srvs::Empty empt;
+    updateParams(empt.request, empt.response);
+  }
 
   double obstacleCostFunction(const CircleObstacle& new_obstacle, const CircleObstacle& old_obstacle);
   void calculateCostMatrix(const std::vector<CircleObstacle>& new_obstacles, arma::mat& cost_matrix);
@@ -82,15 +88,19 @@ private:
   ros::NodeHandle nh_local_;
 
   ros::Subscriber obstacles_sub_;
+  // ros::Subscriber identified_obstacles_sub_;
   ros::Publisher obstacles_pub_;
   ros::ServiceServer params_srv_;
   ros::Timer timer_;
+  tf::TransformListener tf_listener_;
 
   double radius_margin_;
   obstacle_detector::Obstacles obstacles_;
 
   std::vector<TrackedObstacle> tracked_obstacles_;
   std::vector<CircleObstacle> untracked_obstacles_;
+  std::vector<obstacle_detector::IdentifiedObstacle> id_obs_;
+  int nr_of_tracked_obstacles_;
 
   // Parameters
   bool p_active_;
@@ -107,6 +117,7 @@ private:
   double p_measurement_variance_;
 
   std::string p_frame_id_;
+  std::string base_frame_id_;
 };
 
 } // namespace obstacle_detector

@@ -63,6 +63,8 @@ public:
 
   Point center;
   double radius;
+  double distance;
+  double bearing;
   std::vector<PointSet> point_sets;
 };
 

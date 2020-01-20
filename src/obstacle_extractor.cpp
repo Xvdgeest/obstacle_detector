@@ -423,15 +423,20 @@ void ObstacleExtractor::publishObstacles() {
       s.last_point = transformPoint(s.last_point, transform);
     }
 
-    for (Circle& c : circles_)
+    for (Circle& c : circles_){
+      c.distance = sqrt(c.center.x * c.center.x + c.center.y * c.center.y);
+      c.bearing = atan2(c.center.y,c.center.x);
+
       c.center = transformPoint(c.center, transform);
-
+      
+    }
     obstacles_msg->header.frame_id = p_frame_id_;
+    obstacles_msg->base_frame_id = base_frame_id_;
   }
-  else
+  else{
     obstacles_msg->header.frame_id = base_frame_id_;
-
-
+    obstacles_msg->base_frame_id = base_frame_id_;
+  }
   for (const Segment& s : segments_) {
     SegmentObstacle segment;
 
@@ -453,6 +458,8 @@ void ObstacleExtractor::publishObstacles() {
         circle.velocity.x = 0.0;
         circle.velocity.y = 0.0;
         circle.radius = c.radius;
+        circle.distance = c.distance;
+        circle.bearing = c.bearing;
         circle.true_radius = c.radius - p_radius_enlargement_;
 
         obstacles_msg->circles.push_back(circle);
